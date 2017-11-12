@@ -169,7 +169,9 @@ def generateInfo(dataTuples):
         pickle.dump(results,open(dataTuples[i][1].replace(' ','_'),'wb'))
         i+=1
 
-
+def generatePlots(dataTuples):
+    keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine","medianIncomeForArea"]
+    return 0
 if __name__ == "__main__":
 
     print("Please enter a state:")
@@ -224,4 +226,5 @@ if __name__ == "__main__":
         print("Something went wrong!")
         print("Got Error Code: ", e)
     county_incomes = ready_data(data)
-    generateInfo(county_incomes)
+    generatePlots(county_incomes)
+    #generateInfo(county_incomes)
