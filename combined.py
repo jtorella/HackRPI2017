@@ -5,6 +5,8 @@ import pickle
 import string
 import tkinter
 import matplotlib.pyplot as plt
+import os.path
+import numpy as np
 
 
 income_code = "B19013_001E" #household income in the past year
@@ -13,7 +15,7 @@ median_code = "B01002_001E"
 f=open("keys.txt",'r')
 TAkey = (f.read())
 f.close()
-googleMaps='AIzaSyAOg6tjxblKqni2RL2r5rDrVPAnU0vnvME'
+googleMaps='AIzaSyC-2jdvjnt7toifJSd1E_pmsJc4IGawPcI'
 request = True
 grequest = True
 
@@ -98,29 +100,28 @@ def ready_data(data):
     return county_income
 
 
-
-
-
-
 def parseLatLon(googleJSON):
-    data = json.loads(googleJSON)
+    data = json.loads(googleJSON.decode('utf-8'))
     latLonPair = (data['results'][0]['geometry']['location'])
     lat = str(latLonPair['lat'])
     lon = str(latLonPair['lng'])
     return lat,lon
 
 
-
-    #
 def generateInfo(dataTuples):
     sz = len(dataTuples)
     i=0
     while i<sz:
+        if os.path.isfile(dataTuples[i][1].replace(' ','_') + '_' + dataTuples[i][0].replace(' ','_')):
+            print(dataTuples[i][1] + " is already a file!!")
+            i+=1
+            continue
+
         request = True
         grequest = True
         mapRequest = "https://maps.googleapis.com/maps/api/place/textsearch/json?query="+dataTuples[i][0].replace(' ','+')+"+"+\
-            dataTuples[i][1].replace(' ','+')+"&key="+googleMaps
-        area=dataTuples[i][1].replace(' ','_')
+            dataTuples[i][1].replace(' ','+')+"&key=" + googleMaps
+        area=dataTuples[i][1].replace(' ','_') + "_" + dataTuples[i][0].replace(' ', '_')
         #FOR GOOGLE maps
         if(grequest is True):
             try:
@@ -145,7 +146,7 @@ def generateInfo(dataTuples):
             except URLError as e:
                 print ('Error trying to do api request:', e)
 
-            info = json.loads(state)
+            info = json.loads(state.decode('utf-8'))
             pickle.dump(state,open(area+"rawInfo.p","wb"))
             pickle.dump(info,open(area+"info.p","wb"))
         else:
@@ -161,7 +162,7 @@ def generateInfo(dataTuples):
             results["medianIncomeForArea"]=dataTuples[i][2]
 
 
-        pickle.dump(results,open(dataTuples[i][1].replace(' ','_'),'wb'))
+        pickle.dump(results,open(dataTuples[i][1].replace(' ','_') + "_" + dataTuples[i][0].replace(' ', '_'),'wb'))
         i+=1
 
 def generatePlots(dataTuples):
@@ -174,15 +175,18 @@ def generatePlots(dataTuples):
     prct=True
     dataTuples=sorted(dataTuples,key=lambda x: int(x[2]))
     xlbls=[]
-    clrs=arange(0,1.0,1.0/len(dataTuples))
+    clrs=np.arange(0,1.0,1.0/len(dataTuples))
+    clrs_actual = []
     actClrs=[]
+    j=0
     for tup in dataTuples:
         income = int(tup[2])
         county = tup[1]
-        pickle_dik = pickle.load(open(county.replace(' ','_'), "rb"))
+        state = tup[0]
+        pickle_data = pickle.load(open(county.replace(' ','_')+ '_' + state.replace(' ', '_'), "rb"))
         count = 0
         if(pricelvl == True):
-            for levels in pickle_dik['price_level']:
+            for levels in pickle_data['price_level']:
 
                 if levels is None:
                     continue
@@ -196,7 +200,7 @@ def generatePlots(dataTuples):
 
                 y.append(money_count)
         elif(prct):
-            for pcnt_rcmd in pickle_dik["percent_recommended"]:
+            for pcnt_rcmd in pickle_data["percent_recommended"]:
                 if pcnt_rcmd is None:
                     continue
                 count+=1
@@ -205,17 +209,19 @@ def generatePlots(dataTuples):
         while i < count:
             x.append((income))
             xlbls.append(county + " "+str(income))
-            clrs.append('red')
+            clrs_actual.append(clrs[j])
             i+=1
         tot+=count
+        j+=1
 
-    print(xlbls)
     plt.xticks(x,xlbls,rotation=90)
-    plt.scatter(x,y) #add clrs maybe
+    plt.ylabel("% recommendation")
+    plt.scatter(x,y,c=clrs_actual) #add clrs maybe
     fig = plt.gcf()
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
     fig.savefig("testing.pdf")
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -272,4 +278,5 @@ if __name__ == "__main__":
         print("Something went wrong!")
         print("Got Error Code: ", e)
     county_incomes = ready_data(data)
+    generateInfo(county_incomes)
     generatePlots(county_incomes)
