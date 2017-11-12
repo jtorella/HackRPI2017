@@ -151,42 +151,71 @@ def generateInfo(dataTuples):
         else:
             raw = pickle.load(open(area+"rawInfo.p","rb"))
             info = pickle.load(open(area+"info.p","rb"))
-        
+
         keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine"]
-        results={}
+        results={"name":[],"num_reviews":[],"percent_recommended":[],"rating":[],"latitude":[],"longitude":[],"price_level":[],"cuisine":[],"medianIncomeForArea":[]}
+
         for x in (info['data']):
             for y in keys:
-                results[y]=x[y]
-        info["medianIncomeForArea"]=dataTuples[i][2]
+                results[y].append(x[y])
+            results["medianIncomeForArea"]=dataTuples[i][2]
+
+
         pickle.dump(results,open(dataTuples[i][1].replace(' ','_'),'wb'))
         i+=1
 
 def generatePlots(dataTuples):
     keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine","medianIncomeForArea"]
-    
+
     x = []
     y = []
+    tot=0
+    pricelvl=False
+    prct=True
+    dataTuples=sorted(dataTuples,key=lambda x: int(x[2]))
+    xlbls=[]
+    clrs=arange(0,1.0,1.0/len(dataTuples))
+    actClrs=[]
     for tup in dataTuples:
-        income = tup[2]
+        income = int(tup[2])
         county = tup[1]
         pickle_dik = pickle.load(open(county.replace(' ','_'), "rb"))
+        count = 0
+        if(pricelvl == True):
+            for levels in pickle_dik['price_level']:
 
-        if pickle_dik['price_level'] is None:
-            continue
+                if levels is None:
+                    continue
+                count+=1
+                money_count = levels.count('$')
+                if money_count == 5:
+                    money_count = 2.5
+                elif money_count == 3:
+                    if '-' in levels:
+                        money_count = 1.5
 
-        money_count = pickle_dik['price_level'].count('$')
-        if money_count == 5:
-            money_count = 2.5
-        elif money_count == 3:
-            if '-' in pickle_dik['price_level']:
-                money_count = 1.5
+                y.append(money_count)
+        elif(prct):
+            for pcnt_rcmd in pickle_dik["percent_recommended"]:
+                if pcnt_rcmd is None:
+                    continue
+                count+=1
+                y.append(int(pcnt_rcmd))
+        i=0
+        while i < count:
+            x.append((income))
+            xlbls.append(county + " "+str(income))
+            clrs.append('red')
+            i+=1
+        tot+=count
 
-        y.append(money_count)
-        x.append(income)
-
-
-    plt.scatter(x,y)
-    plt.show()
+    print(xlbls)
+    plt.xticks(x,xlbls,rotation=90)
+    plt.scatter(x,y) #add clrs maybe
+    fig = plt.gcf()
+    fig.set_size_inches(18.5, 10.5)
+    fig.tight_layout()
+    fig.savefig("testing.pdf")
 
 
 if __name__ == "__main__":
@@ -244,4 +273,3 @@ if __name__ == "__main__":
         print("Got Error Code: ", e)
     county_incomes = ready_data(data)
     generatePlots(county_incomes)
-    
