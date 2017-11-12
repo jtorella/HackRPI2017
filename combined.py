@@ -3,6 +3,8 @@ import json
 import re
 import pickle
 import string
+import tkinter
+import matplotlib.pyplot as plt
 
 
 income_code = "B19013_001E" #household income in the past year
@@ -11,7 +13,6 @@ median_code = "B01002_001E"
 f=open("keys.txt",'r')
 TAkey = (f.read())
 f.close()
-print ("yuuhh")
 googleMaps='AIzaSyAOg6tjxblKqni2RL2r5rDrVPAnU0vnvME'
 request = True
 grequest = True
@@ -29,7 +30,6 @@ def parse_keys(data):
     data = data.replace(',\n', '\n')
 
     data_list = data.split('\n')
-    print(data_list)
     code_map = {}
 
     for i in range(len(data_list)-1):
@@ -95,7 +95,6 @@ def ready_data(data):
 
     	county_income.append((state, county, income))
 
-    print(county_income)
     return county_income
 
 
@@ -121,7 +120,6 @@ def generateInfo(dataTuples):
         grequest = True
         mapRequest = "https://maps.googleapis.com/maps/api/place/textsearch/json?query="+dataTuples[i][0].replace(' ','+')+"+"+\
             dataTuples[i][1].replace(' ','+')+"&key="+googleMaps
-        print(mapRequest)
         area=dataTuples[i][1].replace(' ','_')
         #FOR GOOGLE maps
         if(grequest is True):
@@ -153,13 +151,7 @@ def generateInfo(dataTuples):
         else:
             raw = pickle.load(open(area+"rawInfo.p","rb"))
             info = pickle.load(open(area+"info.p","rb"))
-        #for x in info:
-            #for y in info['data']:
-            #    print("\nbeginning")
-            #    print(y)
-            #    print("end\n")
-        #print (info)
-        #Data and Paging available in map
+        
         keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine"]
         results={}
         for x in (info['data']):
@@ -171,7 +163,32 @@ def generateInfo(dataTuples):
 
 def generatePlots(dataTuples):
     keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine","medianIncomeForArea"]
-    return 0
+    
+    x = []
+    y = []
+    for tup in dataTuples:
+        income = tup[2]
+        county = tup[1]
+        pickle_dik = pickle.load(open(county.replace(' ','_'), "rb"))
+
+        if pickle_dik['price_level'] is None:
+            continue
+
+        money_count = pickle_dik['price_level'].count('$')
+        if money_count == 5:
+            money_count = 2.5
+        elif money_count == 3:
+            if '-' in pickle_dik['price_level']:
+                money_count = 1.5
+
+        y.append(money_count)
+        x.append(income)
+
+
+    plt.scatter(x,y)
+    plt.show()
+
+
 if __name__ == "__main__":
 
     print("Please enter a state:")
@@ -227,4 +244,4 @@ if __name__ == "__main__":
         print("Got Error Code: ", e)
     county_incomes = ready_data(data)
     generatePlots(county_incomes)
-    #generateInfo(county_incomes)
+    
