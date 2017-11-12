@@ -7,7 +7,7 @@ import tkinter
 import matplotlib.pyplot as plt
 import os.path
 import numpy as np
-
+import texttable as tt
 
 income_code = "B19013_001E" #household income in the past year
 median_code = "B01002_001E"
@@ -224,6 +224,88 @@ def generatePlots(dataTuples):
     plt.show()
 
 
+
+def generateHist(dataTuples):
+    keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine","medianIncomeForArea"]
+
+    x = []
+    y = []
+    tot=0
+    dataTuples=sorted(dataTuples,key=lambda x: int(x[2]))
+    numCounties=len(dataTuples)
+    ylbls=[]
+    j=0
+    for tup in dataTuples:
+        income = int(tup[2])
+        county = tup[1]
+        state = tup[0]
+        pickle_data = pickle.load(open(county.replace(' ','_')+ '_' + state.replace(' ', '_'), "rb"))
+        count=0
+        for rat in pickle_data["rating"]:
+            if rat is None:
+                continue
+            count+=1
+            x.append(int(round(float(rat))))
+            y.append(income)
+            ylbls.append(county + " "+str(income))
+
+        tot+=count
+        j+=1
+
+    bins = [5+5,numCounties+5]
+    plt.yticks(y,ylbls)
+    #plt.ylabel("% recommendation")
+    plt.hist2d(x,y,bins=bins) #add clrs maybe
+    plt.colorbar()
+    plt.margins(0.05)
+    fig = plt.gcf()
+    fig.set_size_inches(18.5, 10.5)
+    fig.tight_layout()
+    fig.savefig("testingHist.pdf")
+
+    plt.show()
+
+def generateTableHist(dataTuples):
+    keys=["name","num_reviews","percent_recommended","rating","latitude","longitude","price_level","cuisine","medianIncomeForArea"]
+
+    table = {}
+    tot=0
+    dataTuples=sorted(dataTuples,key=lambda x: int(x[2]))
+    incomes=[]
+    numCounties=len(dataTuples)
+
+    j=0
+    for tup in dataTuples:
+        prcntRatings={1:0,2:0,3:0,4:0,5:0}
+        county = tup[1]
+        state = tup[0]
+        pickle_data = pickle.load(open(county.replace(' ','_')+ '_' + state.replace(' ', '_'), "rb"))
+        count=0
+        for rat in pickle_data["rating"]:
+            if rat is None:
+                continue
+            count+=1
+            rating = (int(round(float(rat))))
+            prcntRatings[rating]+=1
+        for index in prcntRatings.keys():
+            prcntRatings[index] = prcntRatings[index]/count
+        table[county.replace(' ','_')]=prcntRatings
+        incomes.append(float(tup[2]))
+    tab = tt.Texttable()
+    headings = ["County","Median Income:", "1 star %", "2 star %" , "3 star %", "4 star %", "5 star %"]
+    tab.header(headings)
+    i = 0
+    for x in table.keys():
+        row=[]
+        row.append(x)
+        row.append(incomes[i])
+        for y in table[x].keys():
+            row.append(100*table[x][y])
+        tab.add_row(row)
+        i+=1
+    print(tab.draw())
+
+
 if __name__ == "__main__":
 
     print("Please enter a state:")
@@ -280,3 +362,5 @@ if __name__ == "__main__":
     county_incomes = ready_data(data)
     generateInfo(county_incomes)
     generatePlots(county_incomes)
+    generateHist(county_incomes)
+    generateTableHist(county_incomes)
