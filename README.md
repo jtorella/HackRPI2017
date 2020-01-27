@@ -1,7 +1,7 @@
 # HackRPI2017
 Hackathon Project for HackRPI 2017
 
-key="957e54c54c466948f418a4fb06de33bb044fe859"
+key="?"
 
 state = ""
 request2 = Request('http://api.census.gov/data/2016/acs/acs1?get=NAME,B01001_001E&for=state:*&key='+key)
@@ -11,4 +11,4 @@ try:
 	state = response.read()
 	print (state)
 except URLError, e:
-    print 'No kittez. Got an error code:', e
+    print 'Error getting url, probably a key issue', e
